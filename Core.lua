@@ -355,22 +355,10 @@ end
 
 
 function x:HideGlow(button, removeFromActiveGlows)
-    local glowType = self:GetGlowType()
-    if glowType == 'pixel' then
-        LCG.PixelGlow_Stop(
-            button,
-            AddonName .. '_glow'
-        )
-    elseif glowType == 'procc' then
-        LCG.ProcGlow_Stop(button)
-    elseif glowType == 'autocast' then
-        LCG.AutoCastGlow_Stop(
-            button,
-            AddonName .. '_glow'
-        )
-    elseif glowType == 'blizz' then
-        LCG.ButtonGlow_Stop(button)
-    end
+    LCG.PixelGlow_Stop(button, AddonName .. '_glow')
+    LCG.ProcGlow_Stop(button)
+    LCG.AutoCastGlow_Stop(button, AddonName .. '_glow')
+    LCG.ButtonGlow_Stop(button)
 
     if removeFromActiveGlows then
         self.activeGlows[button:GetName()] = nil
