@@ -125,6 +125,21 @@ function x:InitOptions()
             end
         })
     end
+
+    if Settings and Settings.RegisterAddOnCategory then
+        local frame = CreateFrame('Frame', nil, UIParent, 'BackdropTemplate')
+        frame.name = AddonName
+
+        local button = CreateFrame('Button', nil, frame, 'UIPanelButtonTemplate')
+        button:SetSize(200, 40)
+        button:SetPoint('CENTER')
+        button:SetText('Open Options')
+        button:SetScript('OnClick', function()
+            LibStub('AceConfigDialog-3.0'):Open(AddonName)
+        end)
+
+        Settings.RegisterAddOnCategory(Settings.RegisterCanvasLayoutCategory(frame, AddonName))
+    end
 end
 
 function x:SlashCommand(msg)
