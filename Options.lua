@@ -5,118 +5,131 @@ local AddonName, addon = ...
 local x = addon.engine
 
 function x:InitOptions()
-    -- https://www.wowace.com/projects/ace3/pages/ace-config-3-0-options-tables
-    local function GetOptions()
-        local options = {
-            name = AddonName,
-            handler = x,
-            type = 'group',
-            args = {
-                explanation = {
-                    type = 'description',
-                    name = 'CD Button Glow lights up your action bar buttons if the spell behind it is ready. You can customize which spells are used and which glow you want.'
+    LibStub('AceConfig-3.0'):RegisterOptionsTable(AddonName, {
+        type = "group",
+        args = {
+            general = {
+                type = "group",
+                name = "General",
+                args = {
+                    cooldownMinimum = {
+                        type = "range",
+                        name = "Cooldown Minimum",
+                        desc = "Only glow buttons of spells with a cooldown of at least X seconds.",
+                        min = 0,
+                        max = 300,
+                        step = 1,
+                        get = function() return self.db.profile.cooldownMinimum end,
+                        set = function(_, value)
+                            self.db.profile.cooldownMinimum = value
+                            self:UpdateEverything()
+                        end,
+                    },
+                    glowType = {
+                        type = "select",
+                        name = "Glow Type",
+                        desc = "Which type of glow do you want?",
+                        values = {
+                            ["pixel"] = "Pixel Glow",
+                            ["autocast"] = "Auto Cast Shine",
+                            ["procc"] = "Proc Glow",
+                            ["blizz"] = "Action Button Glow"
+                        },
+                        get = function() return self.db.profile.glowType end,
+                        set = function(_, value)
+                            self.db.profile.glowType = value
+                            self:UpdateEverything()
+                        end,
+                    },
+                    disableOutOfCombat = {
+                        type = "toggle",
+                        name = "Disable out of combat",
+                        desc = "Only enable the glows while in combat.",
+                        get = function() return self.db.profile.disableOutOfCombat end,
+                        set = function(_, value)
+                            self.db.profile.disableOutOfCombat = value
+                            self:UpdateEverything()
+                        end,
+                    },
                 },
-                general = {
-                    type = 'group',
-                    name = 'General options',
-                    order = 100,
-                    args = {
-                        cooldownMinimum = {
-                            type = 'range',
-                            name = 'Cooldown Minimum',
-                            desc = 'Only glow buttons of spells with a cooldown of at least x seconds.',
-                            min = 0,
-                            max = 300,
-                            step = 1,
-                            bigStep = 30,
-                            get = 'GetCooldownMinimum',
-                            set = 'SetCooldownMinimum',
+            },
+        },
+    })
+
+    local aceConfig = LibStub('AceConfig-3.0')
+    aceConfig:RegisterOptionsTable(AddonName, {
+        type = "group",
+        args = {
+            general = {
+                type = "group",
+                name = "General",
+                args = {
+                    cooldownMinimum = {
+                        type = "range",
+                        name = "Cooldown Minimum",
+                        desc = "Only glow buttons of spells with a cooldown of at least X seconds.",
+                        min = 0,
+                        max = 300,
+                        step = 1,
+                        get = function() return self.db.profile.cooldownMinimum end,
+                        set = function(_, value)
+                            self.db.profile.cooldownMinimum = value
+                            self:UpdateEverything()
+                        end,
+                    },
+                    glowType = {
+                        type = "select",
+                        name = "Glow Type",
+                        desc = "Which type of glow do you want?",
+                        values = {
+                            ["pixel"] = "Pixel Glow",
+                            ["autocast"] = "Auto Cast Shine",
+                            ["procc"] = "Proc Glow",
+                            ["blizz"] = "Action Button Glow"
                         },
-                        glowType = {
-                            type = 'select',
-                            name = 'Type of action bar glow',
-                            desc = 'Which type of glow do you want?',
-                            values = {
-                                autocast = 'Auto Cast Shine',
-                                pixel = 'Pixel Glow',
-                                procc = 'Proc Glow',
-                                blizz = 'Action Button Glow'
-                            },
-                            get = 'GetGlowType',
-                            set = 'SetGlowType',
-                        },
-                        disableOutOfCombat = {
-                            type = 'toggle',
-                            name = 'Disable out of combat',
-                            desc = 'Only enable the glows while in combat?',
-                            get = 'DisableOutOfCombat',
-                            set = 'SetDisableOutOfCombat',
-                        },
-                    }
+                        get = function() return self.db.profile.glowType end,
+                        set = function(_, value)
+                            self.db.profile.glowType = value
+                            self:UpdateEverything()
+                        end,
+                    },
+                    disableOutOfCombat = {
+                        type = "toggle",
+                        name = "Disable out of combat",
+                        desc = "Only enable the glows while in combat.",
+                        get = function() return self.db.profile.disableOutOfCombat end,
+                        set = function(_, value)
+                            self.db.profile.disableOutOfCombat = value
+                            self:UpdateEverything()
+                        end,
+                    },
                 },
-                exclusions = {
-                    type = 'group',
-                    name = 'Excluded spells',
-                    order = 200,
-                    args = {
-                        explanation = {
-                            type = 'description',
-                            name = 'You can exclude spells from the action bar glow if you want. This is saved per specialization, so you can exclude a spell in one specc but let its button glow in another.',
-                            order = 100
-                        },
-                        excludedNewSpells = {
-                            type = 'multiselect',
-                            name = 'Excluded spells for ' .. self.playerSpecName .. ' ' .. self.playerClassLocalized,
-                            order = 200,
-                            desc = 'For which spells do you want the buttons to NOT light up?',
-                            get = 'IsSpellIdExcluded',
-                            set = 'SetSpellIdExcluded'
-                        }
-                    }
-                }
-            }
-        }
+            },
+        },
+    })
 
-        local exclusions = {}
-        for spellId, _ in pairs(self.buttonSpellIds) do
-            exclusions[tostring(spellId)] = self:GetSpellName(spellId)
-        end
-
-        if self.db.profile.excludedSpellIds[self.playerClass] and self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId] then
-            for spellId, _ in pairs(self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId]) do
-                exclusions[spellId] = self:GetSpellName(tonumber(spellId))
-            end
-        end
-
-        options['args']['exclusions']['args']['excludedNewSpells']['values'] = exclusions
-
-        return options
+    local function OpenSettings()
+        LibStub('AceConfigDialog-3.0'):Open(AddonName)
     end
 
-    LibStub('AceConfig-3.0'):RegisterOptionsTable(AddonName .. '_options', GetOptions)
-    self.optionsFrame = LibStub('AceConfigDialog-3.0'):AddToBlizOptions(AddonName .. '_options', AddonName)
+    self:RegisterChatCommand('cdbg', OpenSettings)
+    self:RegisterChatCommand('cdbuttonglow', OpenSettings)
 
-    local profiles = LibStub('AceDBOptions-3.0'):GetOptionsTable(self.db)
-    LibStub('AceConfig-3.0'):RegisterOptionsTable(AddonName .. '_profiles', profiles)
-    LibStub('AceConfigDialog-3.0'):AddToBlizOptions(AddonName .. '_profiles', 'Profiles', AddonName)
-
-    self:RegisterChatCommand('cdbg', 'SlashCommand')
-    self:RegisterChatCommand('cdbuttonglow', 'SlashCommand')
-
-    AddonCompartmentFrame:RegisterAddon({
-      text = AddonName,
-      registerForAnyClick = true,
-      notCheckable = true,
-      func = function()
-        Settings.OpenToCategory(self.optionsFrame.name)
-      end
-    })
+    if AddonCompartmentFrame then
+        AddonCompartmentFrame:RegisterAddon({
+            text = AddonName,
+            registerForAnyClick = true,
+            notCheckable = true,
+            func = function()
+                LibStub('AceConfigDialog-3.0'):Open(AddonName)
+            end
+        })
+    end
 end
-
 
 function x:SlashCommand(msg)
     if not msg or msg == '' then
-        Settings.OpenToCategory(self.optionsFrame.name)
+        LibStub('AceConfigDialog-3.0'):Open(AddonName)
         return
     end
 
@@ -137,7 +150,7 @@ function x:SlashCommand(msg)
 
     local command, args = msg:match('^([a-zA-Z0-9-]+) (.*)')
     if command == 'analyse-btn' or command == 'analyze-btn' then
-        self:analyseButton(_G[args], true)
+        self:AnalyseButton(_G[args], true)
         return
     end
 
@@ -148,22 +161,22 @@ function x:GetCooldownMinimum()
     return self.db.profile.cooldownMinimum
 end
 
-
 function x:SetCooldownMinimum(_, value)
     self.db.profile.cooldownMinimum = value
     self:UpdateEverything()
 end
 
-
 function x:GetGlowType()
     return self.db.profile.glowType
 end
 
+function x:GetDisableOutOfCombat()
+    return self.db.profile.disableOutOfCombat
+end
 
 function x:DisableOutOfCombat()
     return self.db.profile.disableOutOfCombat
 end
-
 
 function x:SetDisableOutOfCombat(_, value)
     self.db.profile.disableOutOfCombat = value
@@ -172,41 +185,32 @@ function x:SetDisableOutOfCombat(_, value)
     end
 end
 
-
 function x:SetGlowType(_, value)
     self:HideAllActiveGlows(false)
-
     self.db.profile.glowType = value
-
     for _, button in pairs(self.activeGlows) do
         self:ShowGlow(button)
     end
 end
 
-
 function x:IsSpellIdExcluded(_, spellId)
     if not self.db.profile.excludedSpellIds[self.playerClass] or not self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId] then
         return false
     end
-
     return self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId][tostring(spellId)]
 end
-
 
 function x:SetSpellIdExcluded(_, spellId, isExcluded)
     if not self.db.profile.excludedSpellIds[self.playerClass] then
         self.db.profile.excludedSpellIds[self.playerClass] = {}
     end
-
     if not self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId] then
         self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId] = {}
     end
-
     if isExcluded then
         self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId][tostring(spellId)] = true
     else
         self.db.profile.excludedSpellIds[self.playerClass][self.playerSpecId][tostring(spellId)] = nil
     end
-
     self:UpdateEverything()
 end

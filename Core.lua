@@ -31,6 +31,9 @@ end
 
 
 function x:OnEnable()
+    self.activeGlows = self.activeGlows or {}
+    self.buttonSpellIds = self.buttonSpellIds or {}
+
     if not self.tooltip then
         self.tooltip = CreateFrame('GameTooltip', 'CDButtonGlowScanTooltip', UIParent, 'GameTooltipTemplate')
         self.tooltip:SetOwner(WorldFrame, 'ANCHOR_NONE')
@@ -54,6 +57,9 @@ end
 
 
 function x:CheckCooldowns()
+    if not self.buttonSpellIds then
+        return
+    end
     if not self.inCombat and self:DisableOutOfCombat() then
         if self.debug then
             self:Print('Player is not in combat and glows are disabled ooc.')
@@ -124,7 +130,7 @@ function x:AnalyseButton(button, debug)
         self:Print(button:GetName() .. ' represents slot #' .. slot .. '.')
     end
 
-    if slot and HasAction(slot) then
+    if slot and C_ActionBar.HasAction(slot) then
         local spellId = 0
         local actionType, id, subType = GetActionInfo(slot)
         if actionType == 'macro' and subType == 'spell' then
@@ -182,8 +188,8 @@ end
 
 function x:UpdateEverything()
     self.playerClassLocalized, self.playerClass = UnitClass('player')
-    self.playerSpecId = GetSpecialization()
-    _, self.playerSpecName = GetSpecializationInfo(self.playerSpecId)
+    self.playerSpecId = C_SpecializationInfo.GetSpecialization()
+    _, self.playerSpecName = C_SpecializationInfo.GetSpecializationInfo(self.playerSpecId)
 
     if self.checkCooldownsTimer then
         self:CancelTimer(self.checkCooldownsTimer)
@@ -240,6 +246,7 @@ end
 
 
 function x:ParseSpellCooldown(spellId)
+    self.spellCooldowns = self.spellCooldowns or {}
     self.tooltip:ClearLines()
     self.tooltip:SetSpellByID(spellId)
 
@@ -372,6 +379,9 @@ end
 
 
 function x:HideAllActiveGlows(removeFromActiveGlows)
+    if not self.activeGlows then
+        return
+    end
     for _, button in pairs(self.activeGlows) do
         self:HideGlow(button, removeFromActiveGlows)
     end
@@ -379,7 +389,8 @@ end
 
 
 function x:OnPowerBarChange(eventName)
-    local isDragonRiding = UnitPowerBarID('player') == 631
+    local powerBarInfo = GetUnitPowerBarInfo('player')
+    local isDragonRiding = powerBarInfo and powerBarInfo.barID == 631
 
     if self.isDragonRiding ~= isDragonRiding then
         self.isDragonRiding = isDragonRiding
@@ -398,7 +409,8 @@ end
 
 
 function x:OnPlayerEnteringWorld()
-    self.isDragonRiding = UnitPowerBarID('player') == 631
+    local powerBarInfo = GetUnitPowerBarInfo('player')
+    self.isDragonRiding = powerBarInfo and powerBarInfo.barID == 631
 end
 
 

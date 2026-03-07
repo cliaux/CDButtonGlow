@@ -1,8 +1,8 @@
-## Interface: 110205
+## Interface: 120000
 ## Title: CD Button Glow
 ## Notes: Glows an action bar button if the spell on it is ready
 ## Author: RedAces
-## Version: @project-version@
+## Version: 0.22
 ## SavedVariables: CDButtonGlowDB
 ## X-Curse-Project-ID: 1161683
 ## X-Wago-ID: Q6aEnB6W
@@ -18,10 +18,11 @@ libs\AceConsole-3.0\AceConsole-3.0.xml
 libs\AceDB-3.0\AceDB-3.0.xml
 libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
 libs\AceTimer-3.0\AceTimer-3.0.xml
-libs\AceConfig-3.0\AceConfig-3.0.xml
 libs\AceEvent-3.0\AceEvent-3.0.xml
 
 libs\AceGUI-3.0\AceGUI-3.0.xml
+
+libs\AceConfig-3.0\AceConfig-3.0.xml
 
 libs\LibCustomGlow-1.0\LibCustomGlow-1.0.xml
 #@end-no-lib-strip@
