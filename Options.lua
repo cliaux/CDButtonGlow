@@ -74,10 +74,11 @@ local function UpdateExcludedSpellsOptionsCallback(self)
     end
     
     -- Refresh the options dialog if it's open
-    if LibStub('AceConfigDialog-3.0'):Open(AddonName) then
-        LibStub('AceConfigDialog-3.0'):SelectGroup(AddonName, "excludedSpells")
-        LibStub('AceConfigDialog-3.0'):SelectGroup(AddonName, "general") -- Reset to general tab
-        LibStub('AceConfigDialog-3.0'):SelectGroup(AddonName, "excludedSpells") -- Back to excluded spells
+    local dialog = LibStub('AceConfigDialog-3.0')
+    if dialog.OpenFrames and dialog.OpenFrames[AddonName] then
+        dialog:SelectGroup(AddonName, "excludedSpells")
+        dialog:SelectGroup(AddonName, "general") -- Reset to general tab
+        dialog:SelectGroup(AddonName, "excludedSpells") -- Back to excluded spells
     end
 end
 
