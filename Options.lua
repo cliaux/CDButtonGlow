@@ -4,110 +4,157 @@ local AddonName, addon = ...
 -- Local handle to the Engine
 local x = addon.engine
 
+-- Forward declare the function so it can be referenced in InitOptions
+local function UpdateExcludedSpellsOptionsCallback(self)
+    -- Update the excluded spells options with current spell list
+    local args = {}
+    local spellIdList = {}
+    local addonSelf = self -- Make a copy of self for the closures
+    
+    -- Get spell IDs from buttonSpellIds
+    if self.buttonSpellIds then
+        for spellIdentifier, _ in pairs(self.buttonSpellIds) do
+            table.insert(spellIdList, spellIdentifier)
+        end
+    end
+    
+    -- Sort spell IDs for consistent ordering
+    table.sort(spellIdList, function(a, b) return a < b end)
+    
+    -- Create checkboxes for each spell
+    for index, spellIdentifier in ipairs(spellIdList) do
+        local spellInformation = C_Spell.GetSpellInfo(spellIdentifier)
+        local spellNameText = spellInformation and spellInformation.name
+        local spellIconTexture = spellInformation and spellInformation.iconID
+        
+        -- Create local copies for the closures to avoid Lua closure issue
+        local spellIdForClosure = spellIdentifier
+        local nameTextForClosure = spellNameText
+        local iconTextureForClosure = spellIconTexture
+        
+        args["spell_" .. spellIdentifier] = {
+            type = "toggle",
+            name = function()
+                -- Return spell name with icon texture
+                if iconTextureForClosure then
+                    return "|T" .. iconTextureForClosure .. ":16|t " .. (nameTextForClosure or "Unknown Spell (" .. spellIdForClosure .. ")")
+                else
+                    return nameTextForClosure or "Unknown Spell (" .. spellIdForClosure .. ")"
+                end
+            end,
+            desc = function()
+                -- Return spell description
+                local spellLinkText = C_Spell.GetSpellLink(spellIdForClosure)
+                return spellLinkText or "Spell ID: " .. spellIdForClosure
+            end,
+            get = function()
+                return addonSelf:IsSpellIdExcluded({}, spellIdForClosure)
+            end,
+            set = function(_, value)
+                addonSelf:SetSpellIdExcluded(spellIdForClosure, value)
+                addonSelf:UpdateEverything()
+            end,
+            width = "full",
+        }
+    end
+    
+    -- If no spells found, show a message
+    if #spellIdList == 0 then
+        args.note = {
+            type = "description",
+            name = "No spells found. Please open your spellbook or use abilities to populate the list.",
+            fontSize = "medium",
+        }
+    end
+    
+    -- Update the options table
+    wipe(self.optionsTables.excludedSpells.args)
+    for key, value in pairs(args) do
+        self.optionsTables.excludedSpells.args[key] = value
+    end
+    
+    -- Refresh the options dialog if it's open
+    if LibStub('AceConfigDialog-3.0'):Open(AddonName) then
+        LibStub('AceConfigDialog-3.0'):SelectGroup(AddonName, "excludedSpells")
+        LibStub('AceConfigDialog-3.0'):SelectGroup(AddonName, "general") -- Reset to general tab
+        LibStub('AceConfigDialog-3.0'):SelectGroup(AddonName, "excludedSpells") -- Back to excluded spells
+    end
+end
+
 function x:InitOptions()
+    -- Build general options
+    local generalOptions = {
+        type = "group",
+        name = "General",
+        args = {
+            cooldownMinimum = {
+                type = "range",
+                name = "Cooldown Minimum",
+                desc = "Only glow buttons of spells with a cooldown of at least X seconds.",
+                min = 0,
+                max = 300,
+                step = 1,
+                get = function() return self.db.profile.cooldownMinimum end,
+                set = function(_, value)
+                    self.db.profile.cooldownMinimum = value
+                    self:UpdateEverything()
+                end,
+            },
+            glowType = {
+                type = "select",
+                name = "Glow Type",
+                desc = "Which type of glow do you want?",
+                values = {
+                    ["pixel"] = "Pixel Glow",
+                    ["autocast"] = "Auto Cast Shine",
+                    ["procc"] = "Proc Glow",
+                    ["blizz"] = "Action Button Glow"
+                },
+                get = function() return self.db.profile.glowType end,
+                set = function(_, value)
+                    self.db.profile.glowType = value
+                    self:UpdateEverything()
+                end,
+            },
+            disableOutOfCombat = {
+                type = "toggle",
+                name = "Disable out of combat",
+                desc = "Only enable the glows while in combat.",
+                get = function() return self.db.profile.disableOutOfCombat end,
+                set = function(_, value)
+                    self.db.profile.disableOutOfCombat = value
+                    self:UpdateEverything()
+                end,
+            },
+        },
+    }
+    
+    -- Build excluded spells options (will be updated dynamically)
+    local excludedSpellsOptions = {
+        type = "group",
+        name = "Excluded Spells",
+        desc = "Select spells to exclude from glowing",
+        args = {},
+    }
+    
     LibStub('AceConfig-3.0'):RegisterOptionsTable(AddonName, {
         type = "group",
         args = {
-            general = {
-                type = "group",
-                name = "General",
-                args = {
-                    cooldownMinimum = {
-                        type = "range",
-                        name = "Cooldown Minimum",
-                        desc = "Only glow buttons of spells with a cooldown of at least X seconds.",
-                        min = 0,
-                        max = 300,
-                        step = 1,
-                        get = function() return self.db.profile.cooldownMinimum end,
-                        set = function(_, value)
-                            self.db.profile.cooldownMinimum = value
-                            self:UpdateEverything()
-                        end,
-                    },
-                    glowType = {
-                        type = "select",
-                        name = "Glow Type",
-                        desc = "Which type of glow do you want?",
-                        values = {
-                            ["pixel"] = "Pixel Glow",
-                            ["autocast"] = "Auto Cast Shine",
-                            ["procc"] = "Proc Glow",
-                            ["blizz"] = "Action Button Glow"
-                        },
-                        get = function() return self.db.profile.glowType end,
-                        set = function(_, value)
-                            self.db.profile.glowType = value
-                            self:UpdateEverything()
-                        end,
-                    },
-                    disableOutOfCombat = {
-                        type = "toggle",
-                        name = "Disable out of combat",
-                        desc = "Only enable the glows while in combat.",
-                        get = function() return self.db.profile.disableOutOfCombat end,
-                        set = function(_, value)
-                            self.db.profile.disableOutOfCombat = value
-                            self:UpdateEverything()
-                        end,
-                    },
-                },
-            },
+            general = generalOptions,
+            excludedSpells = excludedSpellsOptions,
         },
     })
-
-    local aceConfig = LibStub('AceConfig-3.0')
-    aceConfig:RegisterOptionsTable(AddonName, {
-        type = "group",
-        args = {
-            general = {
-                type = "group",
-                name = "General",
-                args = {
-                    cooldownMinimum = {
-                        type = "range",
-                        name = "Cooldown Minimum",
-                        desc = "Only glow buttons of spells with a cooldown of at least X seconds.",
-                        min = 0,
-                        max = 300,
-                        step = 1,
-                        get = function() return self.db.profile.cooldownMinimum end,
-                        set = function(_, value)
-                            self.db.profile.cooldownMinimum = value
-                            self:UpdateEverything()
-                        end,
-                    },
-                    glowType = {
-                        type = "select",
-                        name = "Glow Type",
-                        desc = "Which type of glow do you want?",
-                        values = {
-                            ["pixel"] = "Pixel Glow",
-                            ["autocast"] = "Auto Cast Shine",
-                            ["procc"] = "Proc Glow",
-                            ["blizz"] = "Action Button Glow"
-                        },
-                        get = function() return self.db.profile.glowType end,
-                        set = function(_, value)
-                            self.db.profile.glowType = value
-                            self:UpdateEverything()
-                        end,
-                    },
-                    disableOutOfCombat = {
-                        type = "toggle",
-                        name = "Disable out of combat",
-                        desc = "Only enable the glows while in combat.",
-                        get = function() return self.db.profile.disableOutOfCombat end,
-                        set = function(_, value)
-                            self.db.profile.disableOutOfCombat = value
-                            self:UpdateEverything()
-                        end,
-                    },
-                },
-            },
-        },
-    })
-
+    
+    -- Store references for updates
+    self.optionsTables = {
+        general = generalOptions,
+        excludedSpells = excludedSpellsOptions,
+    }
+    
+    -- Schedule initial update of excluded spells options
+    self:ScheduleTimer(UpdateExcludedSpellsOptionsCallback, 0.1, self)
+    
+    -- Register chat commands and settings
     local function OpenSettings()
         LibStub('AceConfigDialog-3.0'):Open(AddonName)
     end
@@ -141,6 +188,9 @@ function x:InitOptions()
         Settings.RegisterAddOnCategory(Settings.RegisterCanvasLayoutCategory(frame, AddonName))
     end
 end
+
+-- Make the function available as a method on the engine object
+x.UpdateExcludedSpellsOptions = UpdateExcludedSpellsOptionsCallback
 
 function x:SlashCommand(msg)
     if not msg or msg == '' then

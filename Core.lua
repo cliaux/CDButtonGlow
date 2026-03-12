@@ -232,6 +232,9 @@ function x:UpdateEverything()
         end
     end
 
+    -- Update excluded spells options after building buttonSpellIds
+    self:UpdateExcludedSpellsOptions()
+
     -- https://www.wowace.com/projects/ace3/pages/api/ace-timer-3-0
     self.checkCooldownsTimer = self:ScheduleRepeatingTimer('CheckCooldowns', 0.1)
 end
