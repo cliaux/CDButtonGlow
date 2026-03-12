@@ -51,7 +51,7 @@ local function UpdateExcludedSpellsOptionsCallback(self)
                 return addonSelf:IsSpellIdExcluded({}, spellIdForClosure)
             end,
             set = function(_, value)
-                addonSelf:SetSpellIdExcluded(spellIdForClosure, value)
+                addonSelf:SetSpellIdExcluded({}, spellIdForClosure, value)
                 addonSelf:UpdateEverything()
             end,
             width = "full",
